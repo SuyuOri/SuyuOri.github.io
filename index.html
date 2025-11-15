@@ -4,67 +4,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SuyuOri · Hello, world!</title>
-  <meta name="description" content="SuyuOri 的极简个人网站">
+  <title>SuyuOri · Digital Garden</title>
+  <meta name="description" content="SuyuOri 的博客空间，灵感、笔记与代码片段。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Space+Grotesk:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script defer src="script.js"></script>
 </head>
 
 <body>
-  <header class="site-header">
-    <div class="logo">SuyuOri</div>
-    <nav class="site-nav">
-      <a href="#about">关于</a>
-      <a href="#projects">作品</a>
-      <a href="#contact">联系</a>
-    </nav>
-  </header>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="/">SuyuOri.log</a>
+      <nav class="site-nav">
+        <a href="#posts">文章</a>
+        <a href="#about">关于</a>
+        <a href="#contact">联系</a>
+      </nav>
+      <a class="github-link" href="https://github.com/SuyuOri" target="_blank" rel="noreferrer">GitHub</a>
+    </header>
 
-  <main>
-    <section class="hero">
-      <p class="eyebrow">欢迎</p>
-      <h1>这是一个正在成形的个人空间。</h1>
-      <p class="lead">
-        我会在这里分享项目、想法和旅程。现在的网站很简单，但它已经准备好继续生长。
-      </p>
-      <div class="hero-cta">
-        <button id="helloButton" type="button">打个招呼</button>
-        <span id="helloMessage" aria-live="polite"></span>
+    <main class="layout">
+      <section class="hero">
+        <p class="eyebrow">Hi there · 让想法自然生长</p>
+        <h1>记录 <span>代码、设计</span> 与日常灵感</h1>
+        <p class="lead">
+          这里是我的数字花园：我会在这里发布开发日志、写作草稿与旅途间的灵感。内容不必完美，但保持真实与持续迭代。
+        </p>
+        <div class="hero-actions">
+          <button id="ideaButton" type="button">给我一点灵感</button>
+          <a class="cta-link" href="#posts">查看最新文章 →</a>
+        </div>
+        <p class="idea-message" id="ideaMessage" aria-live="polite"></p>
+      </section>
+
+      <div class="content-grid">
+        <section id="posts" class="post-list">
+          <p class="section-label">最新文章</p>
+
+          <article class="post-card featured">
+            <div class="post-meta">
+              <span>2025 年 11 月 12 日 · 6 分钟阅读</span>
+              <span class="tag">Featured</span>
+            </div>
+            <h2><a href="#">给未来的自己一封信</a></h2>
+            <p>一年后再回顾这封信，看看当初的“想做”里有多少真的落地。它像 Gatsby 博客默认那样，把长篇想法拆成可执行的小节。</p>
+            <div class="post-footer">
+              <span class="tags">
+                <span class="chip">反思</span>
+                <span class="chip">成长</span>
+              </span>
+              <a class="read-more" href="#">继续阅读</a>
+            </div>
+          </article>
+
+          <article class="post-card">
+            <div class="post-meta">
+              <span>2025 年 11 月 05 日 · 4 分钟阅读</span>
+            </div>
+            <h3><a href="#">迁移到 Astro 与 Gatsby 的取舍</a></h3>
+            <p>在静态站点生成器之间做选择时，我总结了性能、写作体验与部署流程的三个关键差异。</p>
+            <a class="read-more" href="#">继续阅读</a>
+          </article>
+
+          <article class="post-card">
+            <div class="post-meta">
+              <span>2025 年 10 月 28 日 · 3 分钟阅读</span>
+            </div>
+            <h3><a href="#">三条快速写作提示</a></h3>
+            <p>参考 Gatsby Starter Blog 的排版节奏，整理我自己的“25 分钟写草稿”方法论。</p>
+            <a class="read-more" href="#">继续阅读</a>
+          </article>
+
+          <article class="post-card">
+            <div class="post-meta">
+              <span>2025 年 10 月 15 日 · 8 分钟阅读</span>
+            </div>
+            <h3><a href="#">给 Side Project 定义“完成”</a></h3>
+            <p>当灵感很多时，约束反而是最好的朋友。本文记录了我给项目设置清晰终点的三种做法。</p>
+            <a class="read-more" href="#">继续阅读</a>
+          </article>
+        </section>
+
+        <aside class="sidebar">
+          <section id="about" class="profile-card">
+            <p class="section-label">关于</p>
+            <h3>嘿，我是 SuyuOri 👋</h3>
+            <p>喜欢把零散想法整理成可实践的计划。常驻领域：Web、可视化、创作工具。</p>
+            <ul>
+              <li>🔭 正在构建一个小型创意工作流工具</li>
+              <li>✍️ 每周至少发布一篇短文</li>
+              <li>🌱 学习 Motion UI 与摄影</li>
+            </ul>
+          </section>
+
+          <section class="tag-card">
+            <p class="section-label">主题</p>
+            <div class="tag-cloud">
+              <span class="chip">前端</span>
+              <span class="chip">Note</span>
+              <span class="chip">设计</span>
+              <span class="chip">旅行</span>
+              <span class="chip">书写</span>
+              <span class="chip">Gatsby</span>
+            </div>
+          </section>
+
+          <section id="folders" class="folder-card">
+            <p class="section-label">内容文件夹</p>
+            <h3>像文件管理器一样管理想法</h3>
+            <p>把灵感分门别类，快速找到草稿/随笔/代码片段。</p>
+            <ul class="folder-tree">
+              <li>
+                <button class="folder-toggle" type="button" aria-expanded="false" aria-controls="folder-drafts">
+                  <span class="folder-icon" aria-hidden="true">▸</span>
+                  草稿 Drafts
+                  <span class="badge">3</span>
+                </button>
+                <ul class="folder-files" id="folder-drafts" hidden>
+                  <li><a href="#">给未来的自己一封信.md</a></li>
+                  <li><a href="#">旅途灵感备忘.txt</a></li>
+                  <li><a href="#">晨间笔记模板.md</a></li>
+                </ul>
+              </li>
+              <li>
+                <button class="folder-toggle" type="button" aria-expanded="false" aria-controls="folder-journal">
+                  <span class="folder-icon" aria-hidden="true">▸</span>
+                  日志 Journal
+                  <span class="badge">4</span>
+                </button>
+                <ul class="folder-files" id="folder-journal" hidden>
+                  <li><a href="#">迭代记录 2025-11-12.md</a></li>
+                  <li><a href="#">新工具试用记录.md</a></li>
+                  <li><a href="#">摄影练习清单.md</a></li>
+                  <li><a href="#">读书摘录 11 月.md</a></li>
+                </ul>
+              </li>
+              <li>
+                <button class="folder-toggle" type="button" aria-expanded="false" aria-controls="folder-snippets">
+                  <span class="folder-icon" aria-hidden="true">▸</span>
+                  片段 Snippets
+                  <span class="badge">5</span>
+                </button>
+                <ul class="folder-files" id="folder-snippets" hidden>
+                  <li><a href="#">渐变按钮实验.css</a></li>
+                  <li><a href="#">终端提示语句.txt</a></li>
+                  <li><a href="#">滚动视差草图.fig</a></li>
+                  <li><a href="#">Glitch 标题动效.js</a></li>
+                  <li><a href="#">Newsletter 开场白合集.md</a></li>
+                </ul>
+              </li>
+            </ul>
+          </section>
+
+          <section id="contact" class="newsletter-card">
+            <p class="section-label">订阅</p>
+            <h3>把新文章送到邮箱</h3>
+            <p>每月末寄出一封短 newsletter，分享进度、灵感与值得收藏的链接。</p>
+            <form id="subscribeForm" novalidate>
+              <label class="sr-only" for="subscribeEmail">邮箱</label>
+              <input id="subscribeEmail" name="email" type="email" placeholder="name@example.com" required>
+              <button type="submit">订阅</button>
+            </form>
+            <p class="subscribe-message" id="subscribeMessage" aria-live="polite"></p>
+          </section>
+        </aside>
       </div>
-    </section>
+    </main>
 
-    <section id="about" class="card">
-      <h2>关于我</h2>
-      <p>
-        你好，我是 SuyuOri —— 一名喜欢构建、学习并记录过程的创作者。这个站点的目标是保持简洁，让内容成为主角。
-      </p>
-    </section>
-
-    <section id="projects" class="card">
-      <h2>近期计划</h2>
-      <ul>
-        <li>整理 GitHub 上的小工具合集</li>
-        <li>撰写一篇关于学习路线的短文</li>
-        <li>分享一些旅途中的照片</li>
-      </ul>
-    </section>
-
-    <section id="contact" class="card">
-      <h2>联系我</h2>
-      <p>
-        欢迎通过 <a href="mailto:suyuori@example.com">邮件</a> 或者
-        <a href="https://github.com/SuyuOri" target="_blank" rel="noreferrer">GitHub</a>
-        找到我。
-      </p>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <small>© <span id="year"></span> SuyuOri · Crafted with ♥</small>
-  </footer>
+    <footer class="site-footer">
+      <small>© <span id="year"></span> SuyuOri · Crafted with intent &amp; curiosity.</small>
+    </footer>
+  </div>
 </body>
 
 </html>
