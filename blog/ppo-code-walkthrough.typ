@@ -1,70 +1,150 @@
 #import "@preview/codelst:0.3.1": listing
 
-#set page(width: 148mm, height: 210mm)
-#set text(font: "Space Grotesk", size: 11pt)
+#set page(width: 148mm, height: 210mm, margin: (top: 2cm, bottom: 2cm, left: 1.5cm, right: 1.5cm))
+#set text(font: "Space Grotesk", size: 11pt, lang: "zh")
 
-#show heading.where(level: 1): set text(size: 18pt, weight: 600)
-#show heading.where(level: 2): set text(size: 14pt, weight: 600)
+// 标题样式设置
+#show heading.where(level: 1): it => {
+  set text(size: 18pt, weight: 700, font: "Merriweather")
+  v(0.5em)
+  it
+  v(0.3em)
+}
+#show heading.where(level: 2): it => {
+  set text(size: 14pt, weight: 600)
+  v(0.4em)
+  it
+  v(0.2em)
+}
 #show heading.where(level: 3): set text(size: 12pt, weight: 600)
 
-#let pill(label) = box(fill: rgb("f2f7ff"), inset: (x: 8pt, y: 4pt), radius: 6pt)[#text(size: 9pt, weight: 600, label)]
+// 代码块样式
+#show raw.where(block: true): block.with(
+  fill: luma(240),
+  inset: 12pt,
+  radius: 6pt,
+  width: 100%
+)
 
-= Proximal Policy Optimization (PPO) — 代码解读
+#let pill(label) = box(
+  fill: rgb("e9b483"),
+  inset: (x: 8pt, y: 4pt),
+  radius: 4pt
+)[#text(size: 9pt, weight: 600, fill: white, label)]
 
-[pill("Draft · 2025-11-16")]
-[pill("Reinforcement Learning"), pill("Typst Blog Prototype")]
+#let info-box(content) = block(
+  fill: rgb("eef5ff"),
+  inset: 12pt,
+  radius: 8pt,
+  stroke: (left: 3pt + rgb("4f7398"))
+)[#content]
+
+= Proximal Policy Optimization — 代码解读
+
+#align(center)[
+  [pill("Draft · 2025-11-16")] 
+  [pill("RL"), pill("PyTorch"), pill("Typst")]
+]
 
 == 为什么选择 PPO？
-PPO 通过限制策略更新的幅度，兼顾了 **训练稳定性** 与 **样本效率**。它使用裁剪目标(clipped objective)来避免策略在单次更新中偏离旧策略太多，进而减少了早期 TRPO 需要的二阶优化复杂度。
+
+PPO 通过限制策略更新的幅度，在 *训练稳定性* 和 *样本效率* 之间找到了平衡。相比早期的 TRPO，它避免了昂贵的二阶优化，使用更简洁的裁剪目标(clipped objective)。
 
 我们从损失函数入手：
 
-$L^{CLIP}(\theta) = \mathbb{E}_t\left[ \min( r_t(\theta) \hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t ) \right]$
+#align(center)[
+  $L^"CLIP"(theta) = bb(E)_t [min(r_t(theta) hat(A)_t, "clip"(r_t(theta), 1-epsilon, 1+epsilon) hat(A)_t)]$
+]
 
-其中 $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$，$\hat{A}_t$ 为广义优势估计(GAE)。
+其中：
+- $r_t(theta) = pi_theta(a_t|s_t) / pi_{theta_"old"}(a_t|s_t)$ 是新旧策略的概率比
+- $hat(A)_t$ 是通过 GAE（广义优势估计）计算的优势
+- $epsilon$ 是裁剪范围超参数（通常 0.1 ~ 0.2）
 
 == 算法流程
-1. 采集 $N$ 条轨迹，得到 $(s_t, a_t, r_t)$。
-2. 使用 GAE 估计优势：
-   $\hat{A}_t = \sum_{l=0}^{T-t} (\gamma\lambda)^l \delta_{t+l}$。
-3. 计算裁剪目标并进行多轮 epoch + mini-batch 更新。
-4. 同时最小化 value 函数误差和熵惩罚，保持探索。
+
+PPO 的训练过程分为几个关键步骤：
+
++ *数据收集*：采集 $N$ 条轨迹，记录状态、动作和奖励序列 $(s_t, a_t, r_t)$
++ *优势计算*：使用 GAE 估计每个时步的优势：
+  #align(center)[
+    $hat(A)_t = sum_{l=0}^{T-t} (gamma lambda)^l delta_{t+l}$
+  ]
+  其中 $delta_t = r_t + gamma V(s_{t+1}) - V(s_t)$ 是 TD 误差
++ *多轮更新*：基于采集的数据进行多个 epoch 的 mini-batch 更新
++ *辅助目标*：同时最小化 value 函数误差和熵惩罚 $L^"VF"$ 和 $L^"ENT"$
 
 == 关键代码
-下面是一段使用 PyTorch 实现的 PPO 更新伪代码，突出裁剪比率与多 epoch 训练：
 
-#listing(lang: "python", title: "ppo_update.py")
+下面是使用 PyTorch 实现的 PPO 单步更新，展示了裁剪技巧和多 epoch 训练的核心逻辑：
+
 ```python
-for epoch in range(update_epochs):
+for epoch in range(num_updates):
     minibatches = rollout.sample_batches(batch_size)
     for batch in minibatches:
         obs, act, old_logp, returns, adv = batch
 
+        # 评估当前策略下的动作
         logp, value = policy.evaluate(obs, act)
-        ratio = (logp - old_logp).exp()
+        
+        # 计算概率比率
+        ratio = torch.exp(logp - old_logp)
 
+        # 裁剪版本和未裁剪版本
         unclipped = ratio * adv
-        clipped = ratio.clamp(1 - clip_coef, 1 + clip_coef) * adv
+        clipped = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * adv
+        
+        # 取较小值确保稳定性
         policy_loss = -torch.min(unclipped, clipped).mean()
 
+        # 辅助目标
         value_loss = 0.5 * (returns - value).pow(2).mean()
-        entropy_loss = -entropy_coef * policy.entropy(obs).mean()
-
-        loss = policy_loss + value_coef * value_loss + entropy_loss
+        entropy_bonus = policy.entropy(obs).mean()
+        
+        # 组合损失
+        loss = policy_loss + vf_coef * value_loss - ent_coef * entropy_bonus
+        
+        # 反向传播
         optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(policy.parameters(), 0.5)
         optimizer.step()
 ```
 
-== 进一步的工程笔记
-- **Advantage 标准化**：训练时常对 $\hat{A}_t$ 做零均值单位方差归一化，防止比率放大。
-- **学习率调度**：在总的训练步中做线性退火，配合 clip 范围可以更稳定。
-- **复现细节**：确保 rollout buffer 里保存 old logits；同时 value 目标要加上可选的 clip。
+== 工程实现细节
 
-== 下一步
-- 将本 Typst 草稿导出为 PDF：
-  ```bash
-  typst compile blog/ppo-code-walkthrough.typ blog/ppo-code-walkthrough.pdf
-  ```
-- 未来可将此文与网页联动，例如在网站中嵌入导出的 PDF，或使用 Typst 生成 HTML 片段。
+#info-box[
+  *Advantage 标准化*：在每个更新轮次中，将优势 $hat(A)_t$ 标准化为零均值单位方差，可以有效减少比率爆炸问题。
+]
+
+- *学习率调度*：采用线性退火策略，配合自适应学习率优化器（如 Adam），可显著提升收敛稳定性
+- *Batch 划分*：通常采用 mini-batch 重新采样而非全量数据，这既减少显存占用，也增加了随机性
+- *Gradient Clipping*：对 $||nabla_theta L||$ 做范数限制（通常 0.5），防止梯度爆炸
+- *Value Loss 裁剪*：可选地对 value 损失也进行裁剪，保持与策略更新的一致性
+- *熵惩罚权重*：通常采用衰减策略，前期鼓励探索，后期聚焦利用
+
+== 常见问题排查
+
+#table(
+  columns: (1fr, 2fr),
+  inset: 10pt,
+  stroke: luma(200),
+  [*症状*], [*可能原因与解决方案*],
+  [损失不收敛], [检查学习率是否过高；优势标准化是否正确；clip 范围设置],
+  [奖励振荡], [增加 value 函数权重；减小学习率；调整 GAE 参数 $lambda$],
+  [模式崩溃], [增加熵惩罚权重；尝试不同的 mini-batch 大小]
+)
+
+== 下一步方向
+
+本文档持续迭代中。可尝试：
+
++ 导出 PDF：`typst compile blog/ppo-code-walkthrough.typ blog/ppo-code-walkthrough.pdf`
++ 实现配套代码：完整的参考实现会另行发布在博客代码段
++ 扩展讨论：分享实际训练的调参经验和踩坑记录
+
+---
+
+#align(center)[
+  _Updated: 2025-11-16_
+]
