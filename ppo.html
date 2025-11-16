@@ -4,7 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PPO 代码解读 · SuyuOri</title>
+  <title>PPO 代码解读 ·        <h2>为什么选择 PPO？</h2>
+        <p>
+          PPO 通过对策略更新进行裁剪 (clipping) 限制新旧策略的差距，兼顾了 <span class="highlight-term">训练稳定性</span> 与样本效率。
+          它沿袭了 TRPO "信赖域" 的思想，却避免了昂贵的二阶优化。核心目标函数：
+        </p>
+
+        <div class="pointer-box">
+          <span class="pointer-arrow">→</span>
+          <span>见代码片段 A：裁剪损失函数</span>
+          <span class="pointer-target">@clip-loss</span>
+        </div>
+        <div class="pointer-box">
+          <span class="pointer-arrow">→</span>
+          <span>见代码片段 B：概率比率计算</span>
+          <span class="pointer-target">@ratio-calc</span>
+        </div>Ori</title>
   <meta name="description" content="PPO 策略优化代码解读，包含核心概念、算法流程与工程实践。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,6 +32,115 @@
   <link rel="manifest" href="site.webmanifest">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* 高级注释样式 */
+    .highlight-term {
+      display: inline-block;
+      border: 2.5px solid #e9b483;
+      border-radius: 8px;
+      padding: 0 6px;
+      background: rgba(233, 180, 131, 0.12);
+      font-weight: 600;
+      color: #1f2a37;
+      transition: all 0.3s ease;
+    }
+
+    .highlight-term:hover {
+      background: rgba(233, 180, 131, 0.25);
+      box-shadow: 0 4px 12px rgba(233, 180, 131, 0.25);
+    }
+
+    .code-label {
+      position: relative;
+      margin: 20px 0;
+      padding: 0;
+    }
+
+    .code-label-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4f7398;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .code-label-title::before {
+      content: '◀';
+      font-size: 1.1em;
+    }
+
+    .code-label.accent-orange .code-label-title {
+      color: #d97706;
+    }
+
+    .code-label.accent-orange .code-label-content {
+      border-left-color: #d97706;
+    }
+
+    .code-label-content {
+      border-left: 4px solid #4f7398;
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+
+    .code-label pre {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .pointer-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border-radius: 6px;
+      background: rgba(79, 115, 152, 0.08);
+      border: 1px solid rgba(79, 115, 152, 0.2);
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .pointer-box:hover {
+      background: rgba(79, 115, 152, 0.15);
+      border-color: rgba(79, 115, 152, 0.4);
+    }
+
+    .pointer-arrow {
+      font-weight: 600;
+      color: #4f7398;
+    }
+
+    .pointer-target {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    /* 交叉引用线条效果 */
+    .highlight-term {
+      position: relative;
+    }
+
+    .highlight-term::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      width: 2px;
+      height: 10px;
+      background: linear-gradient(to bottom, #e9b483, transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .highlight-term:hover::after {
+      opacity: 1;
+    }
+  </style>
   <script defer src="script.js"></script>
 </head>
 
@@ -65,19 +189,33 @@
         </ol>
 
         <h2>PyTorch 风格伪代码</h2>
-        <pre><code>for epoch in range(update_epochs):
+        
+        <div class="code-label">
+          <div class="code-label-title">概率比率计算 (Snippet B)</div>
+          <div class="code-label-content" id="ratio-calc">
+            <pre><code>for epoch in range(update_epochs):
     minibatches = rollout.sample_batches(batch_size)
     for batch in minibatches:
         obs, act, old_logp, returns, adv = batch
 
         logp, value = policy.evaluate(obs, act)
-        ratio = (logp - old_logp).exp()
+        ratio = (logp - old_logp).exp()  # ← 概率比率计算</code></pre>
+          </div>
+        </div>
 
-        unclipped = ratio * adv
+        <div class="code-label accent-orange">
+          <div class="code-label-title">裁剪损失函数 (Snippet A)</div>
+          <div class="code-label-content" id="clip-loss">
+            <pre><code>        unclipped = ratio * adv
         clipped = ratio.clamp(1 - clip_coef, 1 + clip_coef) * adv
-        policy_loss = -torch.min(unclipped, clipped).mean()
+        
+        # ★ 这正是裁剪目标的核心 - 保证 <span class="highlight-term">训练稳定性</span> ★
+        policy_loss = -torch.min(unclipped, clipped).mean()</code></pre>
+          </div>
+        </div>
 
-        value_loss = 0.5 * (returns - value).pow(2).mean()
+        <p>继续优化过程：</p>
+        <pre><code>        value_loss = 0.5 * (returns - value).pow(2).mean()
         entropy_loss = -entropy_coef * policy.entropy(obs).mean()
 
         loss = policy_loss + value_coef * value_loss + entropy_loss
