@@ -8,6 +8,7 @@
 - Hero 模块支持随机灵感提示按钮，贴近 Gatsby 的互动体验
 - 侧边栏集成标签云和 Newsletter 表单（前端校验）
 - 新增“文件夹”结构，可折叠查看草稿、日志、片段等分类
+- 集成 `favicon_io` 生成的一整套 PWA 图标（apple-touch-icon、PNG、ICO、manifest）
 - 独立的 `styles.css` 和 `script.js` 便于继续扩展
 - 使用 `html-validate` 进行基础的 HTML 质量检查
 
