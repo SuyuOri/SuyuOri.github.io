@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PPO 代码解读 · SuyuOri</title>
+  <meta name="description" content="PPO 策略优化代码解读，包含核心概念、算法流程与工程实践。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Space+Grotesk:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
+</head>
+
+<body class="article-page">
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="./index.html">SuyuOri.log</a>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="./index.html#posts">文章</a>
+        <a href="./index.html#about">关于</a>
+        <a href="./index.html#contact">联系</a>
+      </nav>
+      <a class="github-link" href="https://github.com/SuyuOri" target="_blank" rel="noreferrer">GitHub</a>
+    </header>
+
+    <main class="article-layout">
+      <nav class="article-nav" aria-label="Breadcrumb">
+        <a class="back-link" href="./index.html">← 返回首页</a>
+        <span class="crumb-divider" aria-hidden="true">/</span>
+        <span class="crumb-current">技术长文</span>
+      </nav>
+
+      <article class="article-detail">
+        <p class="section-label">长文 · Proximal Policy Optimization</p>
+        <h1>PPO 代码解读</h1>
+        <p class="article-meta">Draft · 2025-11-16 · Reinforcement Learning Notes</p>
+
+        <p class="article-intro">
+          这篇笔记整理了 PPO (Proximal Policy Optimization) 在强化学习训练中的关键想法——它如何在保持样本效率的同时稳定训练、以及代码里需要注意的实现细节。
+        </p>
+
+        <h2>为什么选择 PPO？</h2>
+        <p>
+          PPO 通过对策略更新进行裁剪 (clipping) 限制新旧策略的差距，兼顾了训练稳定性与样本效率。
+          它沿袭了 TRPO “信赖域” 的思想，却避免了昂贵的二阶优化。核心目标函数：
+        </p>
+        <p class="formula">L<sup>CLIP</sup>(θ) = E_t[ min(r_t(θ) Â_t, clip(r_t(θ), 1-ε, 1+ε) Â_t) ]</p>
+        <p>其中 r_t(θ) = π_θ(a_t|s_t) / π<sub>θ_old</sub>(a_t|s_t)，Â_t 采用 GAE 估计。</p>
+
+        <h2>算法流程</h2>
+        <ol>
+          <li>收集 N 条轨迹，获得 (s_t, a_t, r_t)。</li>
+          <li>使用 GAE 计算优势：Â_t = Σ (γλ)^l δ_{t+l}。</li>
+          <li>构造裁剪目标，执行多轮 epoch + mini-batch 更新。</li>
+          <li>同时优化 value loss 与熵惩罚，保持探索。</li>
+        </ol>
+
+        <h2>PyTorch 风格伪代码</h2>
+        <pre><code>for epoch in range(update_epochs):
+    minibatches = rollout.sample_batches(batch_size)
+    for batch in minibatches:
+        obs, act, old_logp, returns, adv = batch
+
+        logp, value = policy.evaluate(obs, act)
+        ratio = (logp - old_logp).exp()
+
+        unclipped = ratio * adv
+        clipped = ratio.clamp(1 - clip_coef, 1 + clip_coef) * adv
+        policy_loss = -torch.min(unclipped, clipped).mean()
+
+        value_loss = 0.5 * (returns - value).pow(2).mean()
+        entropy_loss = -entropy_coef * policy.entropy(obs).mean()
+
+        loss = policy_loss + value_coef * value_loss + entropy_loss
+        optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(policy.parameters(), 0.5)
+        optimizer.step()</code></pre>
+
+        <h2>工程笔记</h2>
+        <ul>
+          <li>优势归一化：对 Â_t 做零均值单位方差，训练更稳健。</li>
+          <li>学习率调度：线性退火配合 clip 范围，减少抖动。</li>
+          <li>Buffer 细节：缓存旧策略 log probability，value loss 也可以加入 clip。</li>
+        </ul>
+
+        <p class="article-note">完整 Typst 排版稿位于 <code>blog/ppo-code-walkthrough.typ</code>，可运行
+          <code>typst compile blog/ppo-code-walkthrough.typ blog/ppo-code-walkthrough.pdf</code> 导出 PDF。</p>
+      </article>
+
+      <div class="article-actions">
+        <a class="article-button" href="./blog/ppo-code-walkthrough.typ" download target="_blank" rel="noreferrer">下载 Typst 源文件</a>
+        <a class="article-button ghost" href="./index.html#posts">返回文章列表</a>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <small>© <span id="year"></span> SuyuOri · Crafted with intent &amp; curiosity.</small>
+    </footer>
+  </div>
+</body>
+
+</html>

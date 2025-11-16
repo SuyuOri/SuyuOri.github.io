@@ -4,7 +4,7 @@
   "description": "Minimal personal site for SuyuOri's GitHub Pages.",
   "scripts": {
     "dev": "serve -l 4173 .",
-    "lint": "html-validate index.html"
+  "lint": "html-validate index.html ppo.html"
   },
   "keywords": [
     "personal-site",

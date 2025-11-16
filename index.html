@@ -24,7 +24,7 @@
   <div class="site-shell">
     <header class="site-header">
       <a class="brand" href="/">SuyuOri.log</a>
-      <nav class="site-nav">
+      <nav class="site-nav" aria-label="主导航">
         <a href="#posts">文章</a>
         <a href="#about">关于</a>
         <a href="#contact">联系</a>
@@ -71,11 +71,11 @@
               <span>2025 年 11 月 16 日 · 技术长文</span>
               <span class="tag">PPO</span>
             </div>
-            <h3><a href="#ppo-article">PPO 代码解读 · Typst 草稿已上线</a></h3>
+            <h3><a href="./ppo.html">PPO 代码解读 · Typst 草稿已上线</a></h3>
             <p>站内直接阅读 PPO 解读，包含裁剪目标、GAE、PyTorch 伪代码等要点；也可下载 Typst 源文件自行排版。</p>
             <div class="ppo-links">
-              <a class="read-more" href="#ppo-article">跳转到正文</a>
-              <a class="secondary-link" href="blog/ppo-code-walkthrough.typ" target="_blank" rel="noreferrer">下载 Typst
+              <a class="read-more" href="./ppo.html">跳转到正文</a>
+              <a class="secondary-link" href="./blog/ppo-code-walkthrough.typ" target="_blank" rel="noreferrer">下载 Typst
                 源文件</a>
             </div>
           </article>
@@ -192,61 +192,6 @@
           </section>
         </aside>
       </div>
-
-      <section id="ppo-article" class="article-detail">
-        <p class="section-label">长文 · Proximal Policy Optimization</p>
-        <h2>PPO 代码解读</h2>
-        <p class="article-meta">Draft · 2025-11-16 · Reinforcement Learning Notes</p>
-
-        <h3>为什么选择 PPO？</h3>
-        <p>
-          PPO 通过对策略更新进行裁剪 (clipping)，在单次更新中限制新旧策略的差距，兼顾了训练稳定性与样本效率。
-          它沿袭了 TRPO “信赖域” 的思想，却避免了昂贵的二阶优化。核心目标函数：
-        </p>
-        <p class="formula">L<sup>CLIP</sup>(θ) = E_t[ min(r_t(θ) Â_t, clip(r_t(θ), 1-ε, 1+ε) Â_t) ]</p>
-        <p>其中 r_t(θ) = π_θ(a_t|s_t) / π<sub>θ_old</sub>(a_t|s_t)，Â_t 采用 GAE 估计。</p>
-
-        <h3>算法流程</h3>
-        <ol>
-          <li>收集 N 条轨迹，获得 (s_t, a_t, r_t)。</li>
-          <li>使用 GAE 计算优势：Â_t = Σ (γλ)^l δ_{t+l}。</li>
-          <li>构造裁剪目标，执行多轮 epoch + mini-batch 更新。</li>
-          <li>同时优化 value loss 与熵惩罚，保持探索。</li>
-        </ol>
-
-        <h3>PyTorch 风格伪代码</h3>
-        <pre><code>for epoch in range(update_epochs):
-            minibatches = rollout.sample_batches(batch_size)
-            for batch in minibatches:
-            obs, act, old_logp, returns, adv = batch
-
-            logp, value = policy.evaluate(obs, act)
-            ratio = (logp - old_logp).exp()
-
-            unclipped = ratio * adv
-            clipped = ratio.clamp(1 - clip_coef, 1 + clip_coef) * adv
-            policy_loss = -torch.min(unclipped, clipped).mean()
-
-            value_loss = 0.5 * (returns - value).pow(2).mean()
-            entropy_loss = -entropy_coef * policy.entropy(obs).mean()
-
-            loss = policy_loss + value_coef * value_loss + entropy_loss
-            optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(policy.parameters(), 0.5)
-            optimizer.step()</code></pre>
-
-        <h3>工程笔记</h3>
-        <ul>
-          <li>优势归一化：对 Â_t 做零均值单位方差，更稳健。</li>
-          <li>学习率调度：线性退火配合 clip 范围，减少抖动。</li>
-          <li>Buffer 细节：缓存旧策略 log probability，value loss 可加入 clip。</li>
-        </ul>
-
-        <p class="article-note">完整 Typst 排版稿位于 <code>blog/ppo-code-walkthrough.typ</code>，可运行
-          <code>typst compile blog/ppo-code-walkthrough.typ blog/ppo-code-walkthrough.pdf</code> 导出 PDF。
-        </p>
-      </section>
     </main>
 
     <footer class="site-footer">
