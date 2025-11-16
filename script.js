@@ -48,3 +48,83 @@ folderToggles.forEach((toggle) => {
 if (yearEl) {
   yearEl.textContent = new Date().getFullYear();
 }
+
+// ===== 批注系统功能 =====
+document.addEventListener('DOMContentLoaded', () => {
+  // 为所有批注目标添加交互效果
+  const annotationTargets = document.querySelectorAll('.annotation-target');
+  
+  annotationTargets.forEach(target => {
+    const svg = target.querySelector('.annotation-svg');
+    if (svg) {
+      // 悬停时显示批注
+      target.addEventListener('mouseenter', () => {
+        const lines = svg.querySelectorAll('.annotation-line');
+        const circles = svg.querySelectorAll('.annotation-circle');
+        
+        lines.forEach(line => {
+          line.style.opacity = '1';
+          line.style.animation = 'drawLine 0.6s ease-in-out';
+        });
+        
+        circles.forEach(circle => {
+          circle.style.strokeWidth = '3';
+          circle.style.filter = 'drop-shadow(0 4px 8px rgba(233, 180, 131, 0.6))';
+        });
+      });
+
+      target.addEventListener('mouseleave', () => {
+        const lines = svg.querySelectorAll('.annotation-line');
+        const circles = svg.querySelectorAll('.annotation-circle');
+        
+        lines.forEach(line => {
+          line.style.opacity = '0.7';
+        });
+        
+        circles.forEach(circle => {
+          circle.style.strokeWidth = '2.5';
+          circle.style.filter = 'drop-shadow(0 2px 4px rgba(233, 180, 131, 0.4))';
+        });
+      });
+    }
+  });
+
+  // 指针框点击滚动到目标
+  const pointerBoxes = document.querySelectorAll('.pointer-box');
+  pointerBoxes.forEach(box => {
+    if (box.onclick) return; // 跳过已有 onclick 的元素
+    
+    box.addEventListener('click', () => {
+      const targetId = box.getAttribute('data-target');
+      if (targetId) {
+        const target = document.getElementById(targetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // 添加高亮效果
+          target.style.animation = 'pulse 0.6s ease-in-out';
+        }
+      }
+    });
+  });
+});
+
+// 脉冲动画
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes pulse {
+    0%, 100% { background-color: #f9fafb; }
+    50% { background-color: rgba(233, 180, 131, 0.3); }
+  }
+  
+  @keyframes drawLine {
+    from {
+      stroke-dashoffset: 100;
+      opacity: 0;
+    }
+    to {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+`;
+document.head.appendChild(style);

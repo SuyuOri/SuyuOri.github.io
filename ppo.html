@@ -6,19 +6,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PPO 代码解读 ·        <h2>为什么选择 PPO？</h2>
         <p>
-          PPO 通过对策略更新进行裁剪 (clipping) 限制新旧策略的差距，兼顾了 <span class="highlight-term">训练稳定性</span> 与样本效率。
+          PPO 通过对策略更新进行裁剪 (clipping) 限制新旧策略的差距，兼顾了
+          <span class="annotation-target" data-annotation="stability">
+            <span class="highlight-term">训练稳定性</span>
+            <svg class="annotation-svg" width="120" height="80" viewBox="0 0 120 80">
+              <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                  <polygon points="0 0, 10 3, 0 6" class="annotation-arrow" />
+                </marker>
+              </defs>
+              <circle cx="40" cy="40" r="35" class="annotation-circle" />
+              <path d="M 50 15 Q 70 20, 85 0" class="annotation-line" />
+              <text x="60" y="8" font-size="11" fill="#d97706" font-weight="600">关键概念</text>
+            </svg>
+          </span>
+          与样本效率。
           它沿袭了 TRPO "信赖域" 的思想，却避免了昂贵的二阶优化。核心目标函数：
         </p>
 
-        <div class="pointer-box">
+        <div class="pointer-box" onclick="document.getElementById('clip-loss').scrollIntoView({behavior: 'smooth'})">
           <span class="pointer-arrow">→</span>
-          <span>见代码片段 A：裁剪损失函数</span>
-          <span class="pointer-target">@clip-loss</span>
+          <span>查看代码片段 A：裁剪损失函数</span>
         </div>
-        <div class="pointer-box">
+        <div class="pointer-box" onclick="document.getElementById('ratio-calc').scrollIntoView({behavior: 'smooth'})">
           <span class="pointer-arrow">→</span>
-          <span>见代码片段 B：概率比率计算</span>
-          <span class="pointer-target">@ratio-calc</span>
+          <span>查看代码片段 B：概率比率计算</span>
         </div>Ori</title>
   <meta name="description" content="PPO 策略优化代码解读，包含核心概念、算法流程与工程实践。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,21 +45,83 @@
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* 高级注释样式 */
+    /* 批注系统样式 */
+    .annotation-container {
+      position: relative;
+      display: inline;
+    }
+
+    .annotation-target {
+      position: relative;
+      display: inline-block;
+      padding: 2px 6px;
+    }
+
+    .annotation-svg {
+      position: absolute;
+      top: -20px;
+      left: -10px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* 圆圈和线条样式 */
+    .annotation-circle {
+      fill: none;
+      stroke: #e9b483;
+      stroke-width: 2.5;
+      stroke-dasharray: 4, 3;
+      filter: drop-shadow(0 2px 4px rgba(233, 180, 131, 0.4));
+    }
+
+    .annotation-line {
+      stroke: #e9b483;
+      stroke-width: 2;
+      fill: none;
+      marker-end: url(#arrowhead);
+      stroke-dasharray: 5, 3;
+      animation: drawLine 0.8s ease-in-out;
+    }
+
+    @keyframes drawLine {
+      from {
+        stroke-dashoffset: 100;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .annotation-arrow {
+      fill: #e9b483;
+      filter: drop-shadow(0 1px 2px rgba(233, 180, 131, 0.3));
+    }
+
+    .annotation-label {
+      position: absolute;
+      background: #fff8e6;
+      border: 2px solid #e9b483;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #d97706;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(233, 180, 131, 0.3);
+      z-index: 11;
+    }
+
     .highlight-term {
       display: inline-block;
-      border: 2.5px solid #e9b483;
-      border-radius: 8px;
-      padding: 0 6px;
-      background: rgba(233, 180, 131, 0.12);
-      font-weight: 600;
-      color: #1f2a37;
+      position: relative;
+      padding: 0 2px;
+      background: rgba(233, 180, 131, 0.08);
+      border-radius: 3px;
       transition: all 0.3s ease;
     }
 
     .highlight-term:hover {
-      background: rgba(233, 180, 131, 0.25);
-      box-shadow: 0 4px 12px rgba(233, 180, 131, 0.25);
+      background: rgba(233, 180, 131, 0.15);
     }
 
     .code-label {
@@ -85,6 +159,17 @@
       padding: 12px;
       border-radius: 6px;
       overflow-x: auto;
+      position: relative;
+    }
+
+    .code-label-content::before {
+      content: attr(data-label);
+      position: absolute;
+      top: -25px;
+      left: 0;
+      font-size: 0.8rem;
+      color: #999;
+      font-weight: 500;
     }
 
     .code-label pre {
@@ -99,46 +184,34 @@
       padding: 8px 12px;
       margin: 8px 0;
       border-radius: 6px;
-      background: rgba(79, 115, 152, 0.08);
-      border: 1px solid rgba(79, 115, 152, 0.2);
+      background: rgba(233, 180, 131, 0.1);
+      border: 2px solid rgba(233, 180, 131, 0.3);
       font-size: 0.9rem;
+      font-weight: 600;
+      color: #d97706;
       transition: all 0.3s ease;
+      cursor: pointer;
     }
 
     .pointer-box:hover {
-      background: rgba(79, 115, 152, 0.15);
-      border-color: rgba(79, 115, 152, 0.4);
+      background: rgba(233, 180, 131, 0.2);
+      border-color: rgba(233, 180, 131, 0.6);
+      transform: translateX(4px);
     }
 
     .pointer-arrow {
-      font-weight: 600;
-      color: #4f7398;
+      font-size: 1.2em;
+      animation: bounce 1s infinite;
     }
 
-    .pointer-target {
-      font-size: 0.85rem;
-      color: #6b7280;
+    @keyframes bounce {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(4px); }
     }
 
-    /* 交叉引用线条效果 */
-    .highlight-term {
-      position: relative;
-    }
-
-    .highlight-term::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 50%;
-      width: 2px;
-      height: 10px;
-      background: linear-gradient(to bottom, #e9b483, transparent);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .highlight-term:hover::after {
-      opacity: 1;
+    .annotation-target:hover .annotation-circle {
+      stroke-width: 3;
+      filter: drop-shadow(0 4px 8px rgba(233, 180, 131, 0.6));
     }
   </style>
   <script defer src="script.js"></script>
@@ -191,7 +264,7 @@
         <h2>PyTorch 风格伪代码</h2>
         
         <div class="code-label">
-          <div class="code-label-title">概率比率计算 (Snippet B)</div>
+          <div class="code-label-title">📍 代码片段 B: 概率比率计算</div>
           <div class="code-label-content" id="ratio-calc">
             <pre><code>for epoch in range(update_epochs):
     minibatches = rollout.sample_batches(batch_size)
@@ -199,17 +272,24 @@
         obs, act, old_logp, returns, adv = batch
 
         logp, value = policy.evaluate(obs, act)
-        ratio = (logp - old_logp).exp()  # ← 概率比率计算</code></pre>
+        <span class="highlight-term">ratio = (logp - old_logp).exp()  # ← 新旧策略概率比</span></code></pre>
           </div>
         </div>
 
         <div class="code-label accent-orange">
-          <div class="code-label-title">裁剪损失函数 (Snippet A)</div>
+          <div class="code-label-title">⭐ 代码片段 A: 裁剪损失函数（核心）</div>
           <div class="code-label-content" id="clip-loss">
             <pre><code>        unclipped = ratio * adv
-        clipped = ratio.clamp(1 - clip_coef, 1 + clip_coef) * adv
+        <span class="highlight-term">clipped = ratio.clamp(1 - clip_coef, 1 + clip_coef) * adv</span>
         
-        # ★ 这正是裁剪目标的核心 - 保证 <span class="highlight-term">训练稳定性</span> ★
+        # ★ 这正是保证 <span class="annotation-target">
+          <span class="highlight-term">训练稳定性</span>
+          <svg class="annotation-svg" width="150" height="60" viewBox="0 0 150 60">
+            <circle cx="45" cy="25" r="30" class="annotation-circle" />
+            <path d="M 75 25 L 110 15" class="annotation-line" />
+            <text x="85" y="8" font-size="10" fill="#d97706" font-weight="600">裁剪机制</text>
+          </svg>
+        </span> ★
         policy_loss = -torch.min(unclipped, clipped).mean()</code></pre>
           </div>
         </div>
