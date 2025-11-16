@@ -11,8 +11,7 @@
 - 集成 `favicon_io` 生成的一整套 PWA 图标（apple-touch-icon、PNG、ICO、manifest）
 - 独立的 `styles.css` 和 `script.js` 便于继续扩展
 - 使用 `html-validate` 进行基础的 HTML 质量检查
-- `blog/ppo-code-walkthrough.typ` 提供 Typst 撰写的首篇技术稿，示范如何用排版语法写 PPO 代码解读
- - `blog/ppo-code-walkthrough.typ` + 页面中的嵌入卡片，展示 Typst 撰写的《PPO 代码解读》
+- `blog/ppo-code-walkthrough.typ` 提供 Typst 撰写的首篇技术稿，网页内直接渲染精简版内容
 
 ## 本地预览
 
@@ -43,4 +42,4 @@ npm run lint
 	```
 
 3. 生成的 PDF 即为《PPO 代码解读》初稿，可上传到发布渠道或嵌入网页。
-4. 页面 `index.html` 中的 “PPO 代码解读 · Typst 版本” 卡片会自动引用 `blog/ppo-code-walkthrough.pdf`，编译后刷新即可在线预览。
+4. 页面 `index.html` 中的 “PPO 代码解读” 卡片会跳转到站内正文；如需生成 PDF，可手动编译后另行发布。
