@@ -190,6 +190,29 @@ a {
   gap: 12px;
 }
 
+.ppo-card {
+  gap: 16px;
+}
+
+.ppo-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.secondary-link {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.ppo-preview {
+  width: 100%;
+  min-height: 320px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+
 .post-card.featured {
   background: var(--surface-alt);
   border-left: 4px solid var(--accent);
